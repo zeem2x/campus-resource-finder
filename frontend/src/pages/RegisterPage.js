@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './AuthPages.css';
+import API_URL from '../api';
 
 function RegisterPage() {
   const [formData, setFormData] = useState({
     username: '', email: '', password: '', confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match!');
@@ -23,7 +26,27 @@ function RegisterPage() {
       setError('Password must be at least 6 characters.');
       return;
     }
-    alert('Registration feature coming in Milestone 2!');
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password
+        })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        navigate('/login');
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError('Could not connect to server');
+    }
+    setLoading(false);
   };
 return (
     <div className="auth-container">
@@ -40,7 +63,7 @@ return (
               value={formData.username} onChange={handleChange} required />
           </div>
           <div className="form-group">
-            <label>Email</label>
+            <label>Email Address</label>
             <input type="email" name="email" placeholder="you@university.edu"
               value={formData.email} onChange={handleChange} required />
           </div>
@@ -55,7 +78,9 @@ return (
               value={formData.confirmPassword} onChange={handleChange} required />
           </div>
           {error && <p className="error-message">{error}</p>}
-          <button type="submit" className="auth-btn">Create Account</button>
+          <button type="submit" className="auth-btn" disabled={loading}>
+            {loading ? 'Creating account...' : 'Create Account'}
+          </button>
         </form>
         <p className="auth-switch">Already have an account? <Link to="/login">Sign in</Link></p>
         <p className="auth-switch"><Link to="/">Back to Home</Link></p>
